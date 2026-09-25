@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Document Engine - Minimal Test Bench</title>
+  <title>Aviation Document Ingest - Test Bench</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -22,7 +22,7 @@
     .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 1.5rem; }
     .header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
     .header h1 { font-size: 1.5rem; color: var(--accent); }
-    .header p { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; }
+    .header p { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; word-break: break-all; }
 
     .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -55,8 +55,8 @@
 
 <div class="container">
   <div class="header">
-    <h1>Aviation Document API Test Bench</h1>
-    <p>Target Endpoint: <code>https://document-api.15dwingsltd.workers.dev/upload</code></p>
+    <h1>15D Wings Document Ingest Bench</h1>
+    <p>Target Proxy Endpoint: <code>https://ingest.15dwingsltd.workers.dev/upload</code></p>
   </div>
 
   <div class="card">
@@ -84,7 +84,7 @@
 
         <div class="form-group">
           <label for="mission_id">Mission ID</label>
-          <input type="text" id="mission_id" name="mission_id" placeholder="e.g. msn_8921x">
+          <input type="text" id="mission_id" name="mission_id" placeholder="e.g. 15D-ZVXWG">
         </div>
 
         <div class="form-group">
@@ -103,21 +103,21 @@
         </div>
       </div>
 
-      <button type="submit" id="submitBtn">Upload & Analyze Document</button>
+      <button type="submit" id="submitBtn">Submit via Ingest Proxy</button>
     </form>
   </div>
 
   <div class="card">
     <div class="response-header">
-      <label>API Output Response</label>
+      <label>Backend Output</label>
       <span id="statusBadge" class="badge">AWAITING REQUEST</span>
     </div>
-    <pre id="output">// Response JSON will render here after upload...</pre>
+    <pre id="output">// Response payload will appear here...</pre>
   </div>
 </div>
 
 <script>
-  const endpoint = "https://document-api.15dwingsltd.workers.dev/upload";
+  const endpoint = "https://ingest.15dwingsltd.workers.dev/upload";
   const form = document.getElementById("uploadForm");
   const submitBtn = document.getElementById("submitBtn");
   const output = document.getElementById("output");
@@ -126,12 +126,11 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     
-    // UI state reset
     submitBtn.disabled = true;
-    submitBtn.textContent = "Processing OCR & Risk Verification...";
+    submitBtn.textContent = "Forwarding to Proxy & Processing OCR...";
     badge.className = "badge";
     badge.textContent = "PROCESSING";
-    output.textContent = "// Waiting for Worker response...";
+    output.textContent = "// Waiting for worker response...";
 
     const formData = new FormData(form);
 
@@ -141,9 +140,15 @@
         body: formData
       });
 
-      const data = await response.json();
-      
-      // Render Status and Output
+      const rawText = await response.text();
+      let parsedJson = null;
+
+      try {
+        parsedJson = JSON.parse(rawText);
+      } catch (e) {
+        // Fallback if worker returned standard text/html response
+      }
+
       badge.textContent = `${response.status} ${response.statusText}`;
       if (response.ok) {
         badge.className = "badge success";
@@ -151,18 +156,20 @@
         badge.className = "badge error";
       }
 
-      output.textContent = JSON.stringify(data, null, 2);
+      output.textContent = parsedJson 
+        ? JSON.stringify(parsedJson, null, 2) 
+        : rawText;
 
     } catch (err) {
       badge.className = "badge error";
-      badge.textContent = "NETWORK ERROR";
+      badge.textContent = "CLIENT FETCH ERROR";
       output.textContent = JSON.stringify({
-        error: "Failed to connect to backend",
+        error: "Failed to communicate with ingest proxy",
         message: err.message
       }, null, 2);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Upload & Analyze Document";
+      submitBtn.textContent = "Submit via Ingest Proxy";
     }
   });
 </script>
