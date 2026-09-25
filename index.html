@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviation Document Engine - Minimal Test Bench</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #06b6d4;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+      --error: #ef4444;
+      --success: #22c55e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 2rem; }
+    
+    .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 1.5rem; }
+    .header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+    .header h1 { font-size: 1.5rem; color: var(--accent); }
+    .header p { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; }
+
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .form-group.full { grid-column: span 2; }
+    
+    label { font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+    input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+    button {
+      background: var(--accent); color: #000; font-weight: 700; border: none; padding: 0.85rem; border-radius: 6px;
+      cursor: pointer; transition: opacity 0.2s; width: 100%; margin-top: 0.5rem;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .response-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold; background: var(--border); }
+    .badge.success { background: #166534; color: #4ade80; }
+    .badge.error { background: #991b1b; color: #fca5a5; }
+
+    pre {
+      background: var(--bg); border: 1px solid var(--border); padding: 1rem; border-radius: 6px;
+      color: #a5f3fc; font-family: monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Aviation Document API Test Bench</h1>
+    <p>Target Endpoint: <code>https://document-api.15dwingsltd.workers.dev/upload</code></p>
+  </div>
+
+  <div class="card">
+    <form id="uploadForm">
+      <div class="grid">
+        <div class="form-group">
+          <label for="scope">Scope *</label>
+          <select id="scope" name="scope" required>
+            <option value="mission">mission</option>
+            <option value="operator">operator</option>
+            <option value="fleet">fleet</option>
+            <option value="autofleet">autofleet</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="doc_type">Declared Document Type *</label>
+          <select id="doc_type" name="doc_type" required>
+            <option value="permit">permit</option>
+            <option value="crew_cert">crew_cert</option>
+            <option value="maintenance">maintenance</option>
+            <option value="insurance">insurance</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="mission_id">Mission ID</label>
+          <input type="text" id="mission_id" name="mission_id" placeholder="e.g. msn_8921x">
+        </div>
+
+        <div class="form-group">
+          <label for="operator_id">Operator ID</label>
+          <input type="text" id="operator_id" name="operator_id" placeholder="e.g. opr_4410">
+        </div>
+
+        <div class="form-group full">
+          <label for="fleet_id">Fleet ID</label>
+          <input type="text" id="fleet_id" name="fleet_id" placeholder="e.g. flt_5502">
+        </div>
+
+        <div class="form-group full">
+          <label for="file">Document File (PDF / Image) *</label>
+          <input type="file" id="file" name="file" accept="image/*,application/pdf" required>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn">Upload & Analyze Document</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="response-header">
+      <label>API Output Response</label>
+      <span id="statusBadge" class="badge">AWAITING REQUEST</span>
+    </div>
+    <pre id="output">// Response JSON will render here after upload...</pre>
+  </div>
+</div>
+
+<script>
+  const endpoint = "https://document-api.15dwingsltd.workers.dev/upload";
+  const form = document.getElementById("uploadForm");
+  const submitBtn = document.getElementById("submitBtn");
+  const output = document.getElementById("output");
+  const badge = document.getElementById("statusBadge");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    // UI state reset
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Processing OCR & Risk Verification...";
+    badge.className = "badge";
+    badge.textContent = "PROCESSING";
+    output.textContent = "// Waiting for Worker response...";
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      // Render Status and Output
+      badge.textContent = `${response.status} ${response.statusText}`;
+      if (response.ok) {
+        badge.className = "badge success";
+      } else {
+        badge.className = "badge error";
+      }
+
+      output.textContent = JSON.stringify(data, null, 2);
+
+    } catch (err) {
+      badge.className = "badge error";
+      badge.textContent = "NETWORK ERROR";
+      output.textContent = JSON.stringify({
+        error: "Failed to connect to backend",
+        message: err.message
+      }, null, 2);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Upload & Analyze Document";
+    }
+  });
+</script>
+
+</body>
+</html>
