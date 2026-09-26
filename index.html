@@ -1,178 +1,404 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Document Ingest - Test Bench</title>
+  <title>Aviation Ingest - Interactive Sandbox Bench</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --accent: #06b6d4;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --border: #334155;
-      --error: #ef4444;
-      --success: #22c55e;
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #f1f5f9;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 2rem; }
-    
-    .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 1.5rem; }
-    .header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
-    .header h1 { font-size: 1.5rem; color: var(--accent); }
-    .header p { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; word-break: break-all; }
-
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
-    .form-group.full { grid-column: span 2; }
-    
-    label { font-size: 0.875rem; font-weight: 600; color: var(--muted); }
-    input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; }
-    input:focus, select:focus { outline: none; border-color: var(--accent); }
-
-    button {
-      background: var(--accent); color: #000; font-weight: 700; border: none; padding: 0.85rem; border-radius: 6px;
-      cursor: pointer; transition: opacity 0.2s; width: 100%; margin-top: 0.5rem;
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
     }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .response-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold; background: var(--border); }
-    .badge.success { background: #166534; color: #4ade80; }
-    .badge.error { background: #991b1b; color: #fca5a5; }
-
-    pre {
-      background: var(--bg); border: 1px solid var(--border); padding: 1rem; border-radius: 6px;
-      color: #a5f3fc; font-family: monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre-wrap;
+    .glass-card {
+      background: #151c2c;
+      border: 1px solid #1e293b;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen p-4 md:p-8 flex justify-center items-start">
 
-<div class="container">
-  <div class="header">
-    <h1>15D Wings Document Ingest Bench</h1>
-    <p>Target Proxy Endpoint: <code>https://ingest.15dwingsltd.workers.dev/upload</code></p>
-  </div>
+  <div class="w-full max-w-3xl space-y-6">
+    
+    <!-- Top Header -->
+    <header class="glass-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          <h1 class="text-xl font-bold text-sky-400 tracking-tight">Cloudflare Worker Diagnostic Bench</h1>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">Live Endpoint Sandbox & CORS Traffic Verifier</p>
+      </div>
+      <div class="text-right">
+        <span class="text-[10px] uppercase font-mono text-slate-500 block">Target Ingest Endpoint</span>
+        <code class="text-xs text-sky-300 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">ingest.15dwingsltd.workers.dev</code>
+      </div>
+    </header>
 
-  <div class="card">
-    <form id="uploadForm">
-      <div class="grid">
-        <div class="form-group">
-          <label for="scope">Scope *</label>
-          <select id="scope" name="scope" required>
-            <option value="mission">mission</option>
-            <option value="operator">operator</option>
-            <option value="fleet">fleet</option>
-            <option value="autofleet">autofleet</option>
-          </select>
+    <!-- Navigation Tabs -->
+    <div class="flex bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 gap-2">
+      <button id="tabUploadBtn" class="flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition-all bg-sky-500 text-slate-950 shadow">
+        📄 Document Upload Tests
+      </button>
+      <button id="tabDoBtn" class="flex-1 py-2 px-4 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all">
+        ⚡ Durable Objects & Health
+      </button>
+    </div>
+
+    <!-- PANEL 1: Upload Testing -->
+    <main id="uploadPanel" class="space-y-6">
+      <div class="glass-card rounded-2xl p-6 space-y-5">
+        <div class="border-b border-slate-800 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-200">Multipart Ingest Form</h2>
+            <p class="text-xs text-slate-400">Tested with zero manual Content-Type overrides to prevent boundary stripping.</p>
+          </div>
+          <span class="text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full font-mono">POST /upload</span>
         </div>
 
-        <div class="form-group">
-          <label for="doc_type">Declared Document Type *</label>
-          <select id="doc_type" name="doc_type" required>
-            <option value="permit">permit</option>
-            <option value="crew_cert">crew_cert</option>
-            <option value="maintenance">maintenance</option>
-            <option value="insurance">insurance</option>
-          </select>
+        <form id="uploadForm" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Target Scope *</label>
+              <select id="scope" name="scope" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+                <option value="mission">mission</option>
+                <option value="operator">operator</option>
+                <option value="fleet">fleet</option>
+                <option value="autofleet">autofleet</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Declared Doc Type *</label>
+              <select id="doc_type" name="doc_type" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+                <option value="permit">permit</option>
+                <option value="crew_cert">crew_cert</option>
+                <option value="maintenance">maintenance</option>
+                <option value="insurance">insurance</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Mission ID</label>
+              <input type="text" id="mission_id" value="15D-MSN-9901" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Operator ID</label>
+              <input type="text" id="operator_id" value="OPR-401" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono">
+            </div>
+          </div>
+
+          <!-- File Upload Type Toggle -->
+          <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 space-y-3">
+            <label class="block text-xs font-semibold text-slate-300 uppercase">Payload File Stream Mode</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 cursor-pointer bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                <input type="radio" name="fileSource" value="synthetic" checked class="text-sky-500 focus:ring-0">
+                <div class="text-xs">
+                  <span class="font-bold text-sky-400 block">Synthetic Binary Blob</span>
+                  <span class="text-[10px] text-slate-400">Creates PDF in memory (Mobile safe)</span>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                <input type="radio" name="fileSource" value="real" class="text-sky-500 focus:ring-0">
+                <div class="text-xs">
+                  <span class="font-bold text-emerald-400 block">Select Local File</span>
+                  <span class="text-[10px] text-slate-400">Pick PDF/Image from device</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Real File Input (Hidden by default) -->
+            <div id="realFileInputContainer" class="hidden pt-2">
+              <input type="file" id="realFile" accept="image/*,application/pdf" class="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-500/10 file:text-sky-400 hover:file:bg-sky-500/20">
+            </div>
+          </div>
+
+          <button type="submit" id="submitUploadBtn" class="w-full py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-sky-500/10 flex justify-center items-center gap-2">
+            <span>Execute Live Upload Request</span>
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- PANEL 2: Durable Objects & Health Testing -->
+    <main id="doPanel" class="hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-200">Non-Upload Service API Endpoints</h2>
+          <p class="text-xs text-slate-400">Test edge connectivity and Durable Object state persistence directly.</p>
         </div>
 
-        <div class="form-group">
-          <label for="mission_id">Mission ID</label>
-          <input type="text" id="mission_id" name="mission_id" placeholder="e.g. 15D-ZVXWG">
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button id="btnHealth" class="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all">
+            <div class="text-xs font-bold text-emerald-400 font-mono">GET /</div>
+            <div class="text-[11px] text-slate-400 mt-1">Check Monolith Health Status</div>
+          </button>
 
-        <div class="form-group">
-          <label for="operator_id">Operator ID</label>
-          <input type="text" id="operator_id" name="operator_id" placeholder="e.g. opr_4410">
-        </div>
+          <button id="btnGetMission" class="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all">
+            <div class="text-xs font-bold text-sky-400 font-mono">GET /mission/MSN_90210/state</div>
+            <div class="text-[11px] text-slate-400 mt-1">Read Mission DO State</div>
+          </button>
 
-        <div class="form-group full">
-          <label for="fleet_id">Fleet ID</label>
-          <input type="text" id="fleet_id" name="fleet_id" placeholder="e.g. flt_5502">
-        </div>
+          <button id="btnPostMission" class="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all">
+            <div class="text-xs font-bold text-indigo-400 font-mono">POST /mission/MSN_90210/update</div>
+            <div class="text-[11px] text-slate-400 mt-1">Update Mission DO State</div>
+          </button>
 
-        <div class="form-group full">
-          <label for="file">Document File (PDF / Image) *</label>
-          <input type="file" id="file" name="file" accept="image/*,application/pdf" required>
+          <button id="btnGetClock" class="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all">
+            <div class="text-xs font-bold text-amber-400 font-mono">GET /clock/MSN_90210/state</div>
+            <div class="text-[11px] text-slate-400 mt-1">Read Mission Clocks DO</div>
+          </button>
         </div>
       </div>
+    </main>
 
-      <button type="submit" id="submitBtn">Submit via Ingest Proxy</button>
-    </form>
-  </div>
+    <!-- Diagnostic Log Console -->
+    <div class="glass-card rounded-2xl p-6 space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-sky-400"></div>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Diagnostic Console Output</span>
+        </div>
+        <span id="statusBadge" class="text-[11px] font-mono px-2.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">AWAITING TRIGGER</span>
+      </div>
 
-  <div class="card">
-    <div class="response-header">
-      <label>Backend Output</label>
-      <span id="statusBadge" class="badge">AWAITING REQUEST</span>
+      <div class="relative">
+        <pre id="consoleOutput" class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 text-xs text-sky-300 custom-scrollbar max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed">// Diagnostics telemetry will appear here when an API request is fired...</pre>
+      </div>
     </div>
-    <pre id="output">// Response payload will appear here...</pre>
+
   </div>
-</div>
 
-<script>
-  const endpoint = "https://ingest.15dwingsltd.workers.dev/upload";
-  const form = document.getElementById("uploadForm");
-  const submitBtn = document.getElementById("submitBtn");
-  const output = document.getElementById("output");
-  const badge = document.getElementById("statusBadge");
+  <script>
+    const INGEST_BASE = "https://ingest.15dwingsltd.workers.dev";
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    // UI Elements
+    const tabUploadBtn = document.getElementById("tabUploadBtn");
+    const tabDoBtn = document.getElementById("tabDoBtn");
+    const uploadPanel = document.getElementById("uploadPanel");
+    const doPanel = document.getElementById("doPanel");
     
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Forwarding to Proxy & Processing OCR...";
-    badge.className = "badge";
-    badge.textContent = "PROCESSING";
-    output.textContent = "// Waiting for worker response...";
+    const uploadForm = document.getElementById("uploadForm");
+    const submitUploadBtn = document.getElementById("submitUploadBtn");
+    const realFileInputContainer = document.getElementById("realFileInputContainer");
+    const realFileInput = document.getElementById("realFile");
 
-    const formData = new FormData(form);
+    const statusBadge = document.getElementById("statusBadge");
+    const consoleOutput = document.getElementById("consoleOutput");
 
-    try {
-      const response = await fetch(endpoint, {
+    // Tab Switcher
+    tabUploadBtn.addEventListener("click", () => {
+      uploadPanel.classList.remove("hidden");
+      doPanel.classList.add("hidden");
+      tabUploadBtn.className = "flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition-all bg-sky-500 text-slate-950 shadow";
+      tabDoBtn.className = "flex-1 py-2 px-4 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all";
+    });
+
+    tabDoBtn.addEventListener("click", () => {
+      doPanel.classList.remove("hidden");
+      uploadPanel.classList.add("hidden");
+      tabDoBtn.className = "flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition-all bg-sky-500 text-slate-950 shadow";
+      tabUploadBtn.className = "flex-1 py-2 px-4 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all";
+    });
+
+    // Toggle File Mode
+    document.querySelectorAll('input[name="fileSource"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.value === 'real') {
+          realFileInputContainer.classList.remove('hidden');
+        } else {
+          realFileInputContainer.classList.add('hidden');
+        }
+      });
+    });
+
+    function setBadge(text, type) {
+      statusBadge.textContent = text;
+      if (type === "success") {
+        statusBadge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold border border-emerald-800";
+      } else if (type === "error") {
+        statusBadge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded bg-rose-950 text-rose-400 font-bold border border-rose-800";
+      } else {
+        statusBadge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded bg-amber-950 text-amber-300 font-bold border border-amber-800";
+      }
+    }
+
+    // Helper to log structured JSON
+    function renderLog(title, data) {
+      consoleOutput.textContent = `=== ${title} ===\n\n` + JSON.stringify(data, null, 2);
+    }
+
+    // 1. Upload Form Handler
+    uploadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const scope = document.getElementById("scope").value;
+      const doc_type = document.getElementById("doc_type").value;
+      const mission_id = document.getElementById("mission_id").value;
+      const operator_id = document.getElementById("operator_id").value;
+      const fileSource = document.querySelector('input[name="fileSource"]:checked').value;
+
+      let fileToUpload = null;
+
+      if (fileSource === "real") {
+        if (!realFileInput.files || realFileInput.files.length === 0) {
+          setBadge("NO FILE SELECTED", "error");
+          renderLog("CLIENT_ERROR", { message: "Please select a local PDF or image file first." });
+          return;
+        }
+        fileToUpload = realFileInput.files[0];
+      } else {
+        // Generate Synthetic Binary PDF in memory
+        const pdfContent = `%PDF-1.4\n% Synthetic Aviation Compliance Permit Document\nScope: ${scope}\nMission: ${mission_id}\nOperator: ${operator_id}\nTimestamp: ${new Date().toISOString()}`;
+        fileToUpload = new Blob([pdfContent], { type: "application/pdf" });
+        fileToUpload.name = "synthetic_permit.pdf";
+      }
+
+      const formData = new FormData();
+      formData.append("scope", scope);
+      formData.append("doc_type", doc_type);
+      formData.append("mission_id", mission_id);
+      formData.append("operator_id", operator_id);
+      formData.append("file", fileToUpload, fileToUpload.name || "permit.pdf");
+
+      setBadge("SENDING REQUEST...", "pending");
+      renderLog("PRE-FLIGHT DIAGNOSTICS", {
+        target_url: `${INGEST_BASE}/upload`,
         method: "POST",
-        body: formData
+        payload_meta: {
+          scope,
+          doc_type,
+          mission_id,
+          operator_id,
+          file_name: fileToUpload.name || "permit.pdf",
+          file_size_bytes: fileToUpload.size,
+          file_type: fileToUpload.type
+        },
+        headers: "Auto-generated by browser (No hardcoded Content-Type header)"
       });
 
-      const rawText = await response.text();
-      let parsedJson = null;
+      const startTime = performance.now();
 
       try {
-        parsedJson = JSON.parse(rawText);
-      } catch (e) {
-        // Fallback if worker returned standard text/html response
+        const response = await fetch(`${INGEST_BASE}/upload`, {
+          method: "POST",
+          mode: "cors",
+          body: formData
+          // DO NOT ADD 'Content-Type' HEADER HERE! Let browser attach multipart boundary.
+        });
+
+        const durationMs = Math.round(performance.now() - startTime);
+        const responseText = await response.text();
+
+        let parsedJson = null;
+        try {
+          parsedJson = JSON.parse(responseText);
+        } catch (_) {}
+
+        if (response.ok) {
+          setBadge(`${response.status} ${response.statusText}`, "success");
+          renderLog("HTTP 200 OK RESPONSE Payload", {
+            latency: `${durationMs}ms`,
+            status: response.status,
+            parsed_data: parsedJson || responseText
+          });
+        } else {
+          setBadge(`${response.status} ${response.statusText}`, "error");
+          renderLog("HTTP ERROR RESPONSE", {
+            latency: `${durationMs}ms`,
+            status: response.status,
+            status_text: response.statusText,
+            response_body: parsedJson || responseText
+          });
+        }
+
+      } catch (err) {
+        const durationMs = Math.round(performance.now() - startTime);
+        setBadge("FETCH EXCEPTION", "error");
+        renderLog("BROWSER FETCH FAILED (CORS or Network Error)", {
+          latency: `${durationMs}ms`,
+          error_message: err.message,
+          possible_causes: [
+            "Cross-Origin (CORS) preflight rejected by edge worker",
+            "Missing environment variable in monolith (e.g. R2 bucket or AI_API_KEY)",
+            "Edge worker crashed before returning HTTP response headers"
+          ]
+        });
       }
+    });
 
-      badge.textContent = `${response.status} ${response.statusText}`;
-      if (response.ok) {
-        badge.className = "badge success";
-      } else {
-        badge.className = "badge error";
+    // 2. Non-Upload Diagnostic Buttons
+    async function executeApiCall(url, method, body = null) {
+      setBadge("SENDING...", "pending");
+      renderLog("EXECUTING API CALL", { url, method, body });
+
+      const startTime = performance.now();
+      try {
+        const options = { method, mode: "cors" };
+        if (body) {
+          options.headers = { "Content-Type": "application/json" };
+          options.body = JSON.stringify(body);
+        }
+
+        const res = await fetch(url, options);
+        const durationMs = Math.round(performance.now() - startTime);
+        const text = await res.text();
+
+        let parsed = text;
+        try { parsed = JSON.parse(text); } catch (_) {}
+
+        setBadge(`${res.status} ${res.statusText}`, res.ok ? "success" : "error");
+        renderLog(`RESPONSE [${res.status}]`, { latency: `${durationMs}ms`, response: parsed });
+
+      } catch (err) {
+        setBadge("FETCH FAILED", "error");
+        renderLog("NETWORK ERROR", { error: err.message });
       }
-
-      output.textContent = parsedJson 
-        ? JSON.stringify(parsedJson, null, 2) 
-        : rawText;
-
-    } catch (err) {
-      badge.className = "badge error";
-      badge.textContent = "CLIENT FETCH ERROR";
-      output.textContent = JSON.stringify({
-        error: "Failed to communicate with ingest proxy",
-        message: err.message
-      }, null, 2);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit via Ingest Proxy";
     }
-  });
-</script>
 
+    document.getElementById("btnHealth").addEventListener("click", () => {
+      executeApiCall(`${INGEST_BASE}/`, "GET");
+    });
+
+    document.getElementById("btnGetMission").addEventListener("click", () => {
+      executeApiCall(`${INGEST_BASE}/mission/MSN_90210/state`, "GET");
+    });
+
+    document.getElementById("btnPostMission").addEventListener("click", () => {
+      executeApiCall(`${INGEST_BASE}/mission/MSN_90210/update`, "POST", {
+        permit_expiry: Date.now() + 86400000 * 30,
+        document_risk_score: 0.12,
+        status: "TEST_VERIFIED"
+      });
+    });
+
+    document.getElementById("btnGetClock").addEventListener("click", () => {
+      executeApiCall(`${INGEST_BASE}/clock/MSN_90210/state`, "GET");
+    });
+  </script>
 </body>
 </html>
+```
